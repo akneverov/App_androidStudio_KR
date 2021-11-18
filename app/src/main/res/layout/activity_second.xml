@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:layout_margin="0dp"
+    android:background="#B1DDE8"
+    android:backgroundTint="#B1DDE8"
+    android:orientation="vertical"
+    tools:context="com.example.myapplication.SecondActivity">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/testresult"
+            android:textColor="#303F9F"
+            android:textSize="40sp" />
+
+        <TextView
+            android:id="@+id/mTxt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/med"
+            android:textColor="@color/black"
+            android:textSize="17sp" />
+    </LinearLayout>
+
+    <ImageView
+        android:layout_width="126dp"
+        android:layout_height="68dp"
+        android:layout_gravity="left"
+        android:layout_marginLeft="10dp" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:layout_width="102dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="left"
+            android:src="@drawable/indicator"
+            tools:ignore="RtlHardcoded" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="57dp"
+            android:layout_gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/result"
+                android:textColor="@color/black"
+                android:textSize="17sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <ImageView
+        android:layout_width="411dp"
+        android:layout_height="241dp"
+        android:layout_gravity="left"
+        android:background="#B1DDE8"
+        android:src="@drawable/smle" />
+</LinearLayout>
